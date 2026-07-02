@@ -1,0 +1,15 @@
+.venv
+__pycache__
+*.pyc
+.git
+.gitignore
+.pytest_cache
+.ruff_cache
+studylanghelper.db
+PLAN.md
+LICENSE
+tests/
+backend/Dockerfile
+frontend/Dockerfile
+docker-compose.yml
+.dockerignore
