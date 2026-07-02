@@ -77,8 +77,8 @@ def _discrete_colorscale(colors: list[str]) -> list[list]:
 
 def _y_labels(loc: str) -> list[str]:
     if loc == "ru":
-        return ["Пн", "", "Ср", "", "Пт", "", "Вс"]
-    return ["Mon", "", "Wed", "", "Fri", "", "Sun"]
+        return ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+    return ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 
 def _month_labels(year: int, loc: str) -> list[str]:
@@ -92,14 +92,14 @@ def _build_grid(counts: dict[str, int], year: int):
     start = date(year, 1, 1)
     end = date(year, 12, 31)
     grid: list[list[int]] = [[] for _ in range(7)]
-    offset = (start.weekday() + 1) % 7
+    offset = start.weekday()
     for _ in range(offset):
         grid[0].append(-1)
     cur = start
     while cur <= end:
         iso = cur.isoformat()
         count = counts.get(iso, 0)
-        grid[(cur.weekday() + 1) % 7].append(count)
+        grid[cur.weekday()].append(count)
         cur = date.fromordinal(cur.toordinal() + 1)
     max_cols = max(len(row) for row in grid)
     for row in grid:
@@ -214,5 +214,5 @@ fig.update_layout(
     yaxis=dict(autorange="reversed", showgrid=False, tickfont=dict(size=11)),
     xaxis=dict(showgrid=False, showticklabels=False, side="top"),
 )
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width='stretch')
 st.markdown(_legend_html(colors, locale), unsafe_allow_html=True)
