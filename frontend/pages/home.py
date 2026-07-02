@@ -83,8 +83,7 @@ def _y_labels(loc: str) -> list[str]:
 
 def _month_labels(year: int, loc: str) -> list[str]:
     if loc == "ru":
-        return ["Янв", "Фев", "Мар", "Апр", "Май", "Июн",
-                "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"]
+        return ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"]
     return [calendar.month_abbr[m] for m in range(1, 13)]
 
 
@@ -120,22 +119,34 @@ def _month_annotations(year: int, loc: str, max_cols: int) -> list[dict]:
         if m != prev_month:
             if prev_month != 0:
                 mid = (month_start_col + col) / 2 - 0.5
-                annotations.append(dict(
-                    x=mid, y=-0.7, xref="x", yref="y",
-                    text=labels[prev_month - 1],
-                    showarrow=False, font=dict(size=11),
-                ))
+                annotations.append(
+                    dict(
+                        x=mid,
+                        y=-0.7,
+                        xref="x",
+                        yref="y",
+                        text=labels[prev_month - 1],
+                        showarrow=False,
+                        font=dict(size=11),
+                    )
+                )
             month_start_col = col
             prev_month = m
         if cur.weekday() == 6:
             col += 1
         cur = date.fromordinal(cur.toordinal() + 1)
     mid = (month_start_col + col) / 2 - 0.5
-    annotations.append(dict(
-        x=mid, y=-0.7, xref="x", yref="y",
-        text=labels[prev_month - 1],
-        showarrow=False, font=dict(size=11),
-    ))
+    annotations.append(
+        dict(
+            x=mid,
+            y=-0.7,
+            xref="x",
+            yref="y",
+            text=labels[prev_month - 1],
+            showarrow=False,
+            font=dict(size=11),
+        )
+    )
     return annotations
 
 
@@ -167,7 +178,7 @@ def _legend_html(colors: list[str], loc: str) -> str:
     return (
         f'<div style="display:flex;align-items:center;gap:4px;'
         f'font-size:12px;color:inherit;margin-top:4px;">'
-        f'<span>{less}</span>{swatches}<span>{more}</span></div>'
+        f"<span>{less}</span>{swatches}<span>{more}</span></div>"
     )
 
 
@@ -214,5 +225,5 @@ fig.update_layout(
     yaxis=dict(autorange="reversed", showgrid=False, tickfont=dict(size=11)),
     xaxis=dict(showgrid=False, showticklabels=False, side="top"),
 )
-st.plotly_chart(fig, width='stretch')
+st.plotly_chart(fig, width="stretch")
 st.markdown(_legend_html(colors, locale), unsafe_allow_html=True)

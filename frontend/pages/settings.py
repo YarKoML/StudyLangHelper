@@ -1,10 +1,12 @@
-"""Страница настроек: словари, слова, порог N."""
+"""Страница настроек: словари, слова, порог N, LLM."""
 
 import streamlit as st
 
 from frontend import api_client
 from frontend.i18n import t
+from frontend.state import ensure_auth_state
 
+ensure_auth_state()
 locale = st.session_state["ui_locale"]
 
 st.title(t("settings_title", locale))
@@ -18,8 +20,13 @@ except Exception:
 
 lang_code_to_name = {lang["code"]: lang["name"] for lang in languages}
 
-tab_dicts, tab_words, tab_n = st.tabs(
-    [t("tab_dictionaries", locale), t("tab_words", locale), t("tab_threshold", locale)]
+tab_dicts, tab_words, tab_n, tab_llm = st.tabs(
+    [
+        t("tab_dictionaries", locale),
+        t("tab_words", locale),
+        t("tab_threshold", locale),
+        t("tab_llm", locale),
+    ]
 )
 
 
@@ -165,3 +172,98 @@ with tab_n:
                         st.success(t("n_saved", locale))
                     except Exception as e:
                         st.error(f"{t('error', locale)}: {e}")
+
+with tab_llm:
+    st.subheader(t("llm_settings_title", locale))
+
+    try:
+        current = api_client.get_llm_settings()
+    except Exception:
+        current = None
+
+    base_url_default = current.get("base_url", "") if current else ""
+    model_default = current.get("model", "") if current else ""
+
+    if current and current.get("has_key"):
+        st.info(f"{t('has_key', locale)} ✓")
+
+    base_url = st.text_input(
+        t("base_url", locale),
+        value=base_url_default,
+        placeholder="https://api.openai.com/v1/chat/completions",
+        key="llm_base_url",
+    )
+    api_key_input = st.text_input(
+        t("api_key", locale),
+        type="password",
+        placeholder="sk-..." if not current else "•••••••• (введите новый, чтобы заменить)",
+        key="llm_api_key",
+    )
+
+    if "llm_loaded_models" not in st.session_state:
+        st.session_state["llm_loaded_models"] = []
+    if "llm_selected_model" not in st.session_state:
+        st.session_state["llm_selected_model"] = model_default
+
+    col_load, _ = st.columns([1, 3])
+    with col_load:
+        if st.button(t("load_models", locale), key="load_models_btn"):
+            if not base_url or not api_key_input:
+                st.error(t("error", locale))
+            else:
+                try:
+                    models = api_client.list_llm_models(base_url.strip(), api_key_input.strip())
+                    st.session_state["llm_loaded_models"] = models
+                    if models:
+                        st.toast(t("models_loaded", locale), icon="✅")
+                    else:
+                        st.warning(t("no_models", locale))
+                except Exception as e:
+                    detail = ""
+                    try:
+                        import httpx
+
+                        if isinstance(e, httpx.HTTPStatusError):
+                            detail = e.response.json().get("detail", str(e))
+                    except Exception:
+                        detail = str(e)
+                    st.error(f"{t('error', locale)}: {detail}")
+
+    model_options = st.session_state["llm_loaded_models"] or (
+        [model_default] if model_default else []
+    )
+    if model_options:
+        current_idx = (
+            model_options.index(st.session_state["llm_selected_model"])
+            if st.session_state["llm_selected_model"] in model_options
+            else 0
+        )
+        selected_model = st.selectbox(
+            t("select_model", locale),
+            options=model_options,
+            index=current_idx,
+            key="llm_selected_model",
+        )
+
+    if st.button(t("save_llm", locale), key="save_llm_btn"):
+        if not base_url or not api_key_input or not st.session_state.get("llm_selected_model"):
+            st.error(t("error", locale))
+        else:
+            try:
+                api_client.save_llm_settings(
+                    base_url.strip(),
+                    api_key_input.strip(),
+                    st.session_state["llm_selected_model"],
+                )
+                st.success(t("llm_saved", locale))
+                st.session_state["llm_loaded_models"] = []
+            except Exception as e:
+                detail = ""
+                try:
+                    import httpx
+
+                    if isinstance(e, httpx.HTTPStatusError):
+                        detail = e.response.json().get("detail", str(e))
+                except Exception:
+                    detail = str(e)
+                st.error(f"{t('error', locale)}: {detail}")
