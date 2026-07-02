@@ -83,14 +83,14 @@ with tab_words:
             key="words_dict_select",
         )
 
-        with st.form("add_word_form"):
+        with st.form("add_word_form", clear_on_submit=True):
             new_word = st.text_input(t("word", locale))
             new_tr = st.text_input(t("translation", locale))
             add_btn = st.form_submit_button(t("add", locale))
         if add_btn and new_word and new_tr:
             try:
                 api_client.create_word(selected_id, new_word.strip(), new_tr.strip())
-                st.success(t("word_added", locale))
+                st.toast(t("word_added", locale), icon="✅")
             except Exception as e:
                 st.error(f"{t('error', locale)}: {e}")
 
