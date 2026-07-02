@@ -95,7 +95,7 @@ with tab_words:
                 st.error(f"{t('error', locale)}: {e}")
 
         filter_opt = st.radio(
-            "",
+            t("filter_all", locale),
             options=["all", "true", "false"],
             format_func=lambda x: {
                 "all": t("filter_all", locale),
@@ -104,6 +104,7 @@ with tab_words:
             }[x],
             horizontal=True,
             key="words_filter",
+            label_visibility="collapsed",
         )
 
         try:
