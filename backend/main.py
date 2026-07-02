@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.config import CORS_ORIGINS
 from backend.database import create_db_and_tables
-from backend.routers import dictionaries, stats, study, words
+from backend.routers import auth, dictionaries, library, llm, stats, study, words
 
 
 @asynccontextmanager
@@ -30,10 +30,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
 app.include_router(dictionaries.router)
 app.include_router(words.router)
 app.include_router(study.router)
 app.include_router(stats.router)
+app.include_router(llm.router)
+app.include_router(library.router)
 
 
 @app.get("/")

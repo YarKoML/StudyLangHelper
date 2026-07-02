@@ -5,8 +5,9 @@ from sqlmodel import Session, select
 
 from backend.deps import get_session
 from backend.languages import dictionary_name, supported_languages
-from backend.models import Dictionary, Word
+from backend.models import Dictionary, User, Word
 from backend.schemas import DictionaryCreate, DictionaryRead, DictionaryUpdate
+from backend.security import get_current_user
 from backend.seed import seed_words
 
 router = APIRouter(prefix="/dictionaries", tags=["dictionaries"])
@@ -28,9 +29,11 @@ def create_dictionary(
     payload: DictionaryCreate,
     session: Session = Depends(get_session),
     ui_locale: str = Query("ru"),
+    current_user: User = Depends(get_current_user),
 ):
     existing = session.exec(
         select(Dictionary).where(
+            Dictionary.user_id == current_user.id,
             Dictionary.native_lang == payload.native_lang,
             Dictionary.study_lang == payload.study_lang,
         )
@@ -39,6 +42,7 @@ def create_dictionary(
         raise HTTPException(409, "Dictionary for this language pair already exists")
 
     d = Dictionary(
+        user_id=current_user.id,
         native_lang=payload.native_lang,
         study_lang=payload.study_lang,
         n_to_learn=payload.n_to_learn,
@@ -58,8 +62,13 @@ def create_dictionary(
 def list_dictionaries(
     session: Session = Depends(get_session),
     ui_locale: str = Query("ru"),
+    current_user: User = Depends(get_current_user),
 ):
-    dicts = session.exec(select(Dictionary).order_by(Dictionary.created_at)).all()
+    dicts = session.exec(
+        select(Dictionary)
+        .where(Dictionary.user_id == current_user.id)
+        .order_by(Dictionary.created_at)
+    ).all()
     return [_to_read(d, ui_locale) for d in dicts]
 
 
@@ -68,9 +77,10 @@ def get_dictionary(
     dict_id: int,
     session: Session = Depends(get_session),
     ui_locale: str = Query("ru"),
+    current_user: User = Depends(get_current_user),
 ):
     d = session.get(Dictionary, dict_id)
-    if not d:
+    if not d or d.user_id != current_user.id:
         raise HTTPException(404, "Dictionary not found")
     return _to_read(d, ui_locale)
 
@@ -81,9 +91,10 @@ def update_dictionary(
     payload: DictionaryUpdate,
     session: Session = Depends(get_session),
     ui_locale: str = Query("ru"),
+    current_user: User = Depends(get_current_user),
 ):
     d = session.get(Dictionary, dict_id)
-    if not d:
+    if not d or d.user_id != current_user.id:
         raise HTTPException(404, "Dictionary not found")
 
     if payload.n_to_learn is not None:
@@ -102,9 +113,13 @@ def update_dictionary(
 
 
 @router.delete("/{dict_id}", status_code=204)
-def delete_dictionary(dict_id: int, session: Session = Depends(get_session)):
+def delete_dictionary(
+    dict_id: int,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
     d = session.get(Dictionary, dict_id)
-    if not d:
+    if not d or d.user_id != current_user.id:
         raise HTTPException(404, "Dictionary not found")
     session.delete(d)
     session.commit()

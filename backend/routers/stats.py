@@ -6,8 +6,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, func, select
 
 from backend.deps import get_session
-from backend.models import Dictionary, StudySession, Word
+from backend.models import Dictionary, StudySession, User, Word
 from backend.schemas import CalendarDay, StatsRead
+from backend.security import get_current_user
 
 router = APIRouter(prefix="/stats", tags=["stats"])
 
@@ -16,9 +17,10 @@ router = APIRouter(prefix="/stats", tags=["stats"])
 def get_stats(
     dictionary_id: int = Query(...),
     session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
 ):
     d = session.get(Dictionary, dictionary_id)
-    if not d:
+    if not d or d.user_id != current_user.id:
         raise HTTPException(404, "Dictionary not found")
 
     total_words = session.exec(
@@ -56,8 +58,10 @@ def get_calendar(
     dictionary_id: int = Query(...),
     year: int = Query(...),
     session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
 ):
-    if not session.get(Dictionary, dictionary_id):
+    d = session.get(Dictionary, dictionary_id)
+    if not d or d.user_id != current_user.id:
         raise HTTPException(404, "Dictionary not found")
 
     sessions = session.exec(

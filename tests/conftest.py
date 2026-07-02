@@ -29,3 +29,19 @@ def client_fixture():
 
     database.engine = original_engine
     SQLModel.metadata.drop_all(test_engine)
+
+
+@pytest.fixture(name="authed_client")
+def authed_client_fixture(client):
+    """Залогиненный клиент с настроенным Bearer-заголовком."""
+    client.post(
+        "/auth/register",
+        json={"username": "tester", "password": "testpass"},
+    )
+    r = client.post(
+        "/auth/login",
+        json={"username": "tester", "password": "testpass"},
+    )
+    token = r.json()["access_token"]
+    client.headers.update({"Authorization": f"Bearer {token}"})
+    return client

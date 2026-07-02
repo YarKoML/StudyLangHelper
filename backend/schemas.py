@@ -7,6 +7,43 @@ from pydantic import BaseModel, field_validator
 from backend.models import StudyDirection, StudyMode
 
 
+class UserCreate(BaseModel):
+    username: str
+    password: str
+
+    @field_validator("username")
+    @classmethod
+    def username_not_empty(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("username must not be empty")
+        return v
+
+    @field_validator("password")
+    @classmethod
+    def password_not_empty(cls, v: str) -> str:
+        if not v:
+            raise ValueError("password must not be empty")
+        return v
+
+
+class UserRead(BaseModel):
+    id: int
+    username: str
+    created_at: datetime
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserRead
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
 class DictionaryCreate(BaseModel):
     native_lang: str
     study_lang: str
@@ -133,3 +170,77 @@ class StatsRead(BaseModel):
 class CalendarDay(BaseModel):
     date: str
     count: int
+
+
+class LLMSettingsUpdate(BaseModel):
+    base_url: str
+    api_key: str
+    model: str
+
+    @field_validator("base_url", "api_key", "model")
+    @classmethod
+    def not_empty(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("must not be empty")
+        return v
+
+
+class LLMSettingsRead(BaseModel):
+    base_url: str
+    model: str
+    has_key: bool
+
+
+class LLMModelsRequest(BaseModel):
+    base_url: str
+    api_key: str
+
+
+class LLMTranslateRequest(BaseModel):
+    text: str
+    dictionary_id: int
+
+    @field_validator("text")
+    @classmethod
+    def text_not_empty(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("text must not be empty")
+        return v
+
+
+class LLMTranslateResult(BaseModel):
+    translation: str
+
+
+class LLMModelsList(BaseModel):
+    models: list[str]
+
+
+class BookRead(BaseModel):
+    id: int
+    title: str
+    source_filename: str
+    total_pages: int
+    last_page: int
+    created_at: datetime
+
+
+class BookPageRead(BaseModel):
+    id: int
+    title: str
+    total_pages: int
+    current_page: int
+    page_text: str
+
+
+class BookUpdatePosition(BaseModel):
+    last_page: int
+
+    @field_validator("last_page")
+    @classmethod
+    def non_negative(cls, v: int) -> int:
+        if v < 0:
+            raise ValueError("last_page must be >= 0")
+        return v

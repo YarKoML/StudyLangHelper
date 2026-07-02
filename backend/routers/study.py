@@ -13,6 +13,7 @@ from backend.models import (
     StudyDirection,
     StudyMode,
     StudySession,
+    User,
     Word,
 )
 from backend.schemas import (
@@ -23,6 +24,7 @@ from backend.schemas import (
     StudySessionCreate,
     StudySessionRead,
 )
+from backend.security import get_current_user
 
 router = APIRouter(prefix="/study", tags=["study"])
 
@@ -56,14 +58,16 @@ def _build_question(
 
 
 @router.post("/sessions", response_model=StudySessionRead)
-def start_session(payload: StudySessionCreate, session: Session = Depends(get_session)):
+def start_session(
+    payload: StudySessionCreate,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
     d = session.get(Dictionary, payload.dictionary_id)
-    if not d:
+    if not d or d.user_id != current_user.id:
         raise HTTPException(404, "Dictionary not found")
 
-    all_words = list(
-        session.exec(select(Word).where(Word.dictionary_id == d.id)).all()
-    )
+    all_words = list(session.exec(select(Word).where(Word.dictionary_id == d.id)).all())
     if len(all_words) < MIN_WORDS_FOR_OPTIONS:
         raise HTTPException(
             400,
@@ -98,9 +102,17 @@ def start_session(payload: StudySessionCreate, session: Session = Depends(get_se
 
 
 @router.post("/sessions/{session_id}/answer", response_model=AnswerResult)
-def submit_answer(session_id: int, payload: AnswerCreate, session: Session = Depends(get_session)):
+def submit_answer(
+    session_id: int,
+    payload: AnswerCreate,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
     ss = session.get(StudySession, session_id)
     if not ss:
+        raise HTTPException(404, "Session not found")
+    d = session.get(Dictionary, ss.dictionary_id)
+    if not d or d.user_id != current_user.id:
         raise HTTPException(404, "Session not found")
     if ss.finished_at is not None:
         raise HTTPException(400, "Session already finished")
@@ -134,9 +146,16 @@ def submit_answer(session_id: int, payload: AnswerCreate, session: Session = Dep
 
 
 @router.post("/sessions/{session_id}/finish", response_model=SessionResult)
-def finish_session(session_id: int, session: Session = Depends(get_session)):
+def finish_session(
+    session_id: int,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
     ss = session.get(StudySession, session_id)
     if not ss:
+        raise HTTPException(404, "Session not found")
+    d = session.get(Dictionary, ss.dictionary_id)
+    if not d or d.user_id != current_user.id:
         raise HTTPException(404, "Session not found")
     if ss.finished_at is None:
         ss.finished_at = datetime.now(UTC)
