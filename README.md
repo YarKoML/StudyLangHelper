@@ -8,31 +8,53 @@
 - **Frontend**: Streamlit + Plotly
 - **Python 3.12**, управление зависимостями — `uv`
 
-## Установка
+## Запуск через Docker Compose
 
 ```bash
-uv sync
+docker compose up -d --build
 ```
 
-## Запуск
+- Backend: http://localhost:8000 (документация: http://localhost:8000/docs)
+- Frontend: http://localhost:8501
 
-Понадобятся два процесса (backend и frontend) в отдельных терминалах.
+База данных SQLite хранится в `./data/studylanghelper.db` (bind mount) и сохраняется между перезапусками. Директория `data/` создаётся автоматически и исключена из git (`.gitignore`).
 
-### 1. Backend (FastAPI)
+Остановка:
 
 ```bash
+docker compose down          # остановить, данные сохранятся
+```
+
+Чтобы сбросить БД — удалите директорию `data/` вручную:
+
+```bash
+docker compose down
+Remove-Item -Recurse -Force data   # Windows PowerShell
+# или: rm -rf data                  # Linux/macOS
+```
+
+## Локальная установка (без Docker)
+
+Зависимости разделены на optional-groups `backend` и `frontend`. Для локальной разработки установите обе:
+
+```bash
+uv sync --extra backend --extra frontend
+# или эквивалентно:
+uv sync --group local
+```
+
+> **Примечание**: `uv sync` без аргументов поставит только базовые зависимости (пустой набор).
+> Обязательно указывайте `--extra backend --extra frontend` или `--group local` для полноценной работы.
+
+### Запуск (два терминала)
+
+```bash
+# 1. Backend
 uv run uvicorn backend.main:app --reload --port 8000
-```
 
-Документация API: http://localhost:8000/docs
-
-### 2. Frontend (Streamlit)
-
-```bash
+# 2. Frontend
 uv run streamlit run frontend/app.py
 ```
-
-Приложение: http://localhost:8501
 
 ## Возможности
 

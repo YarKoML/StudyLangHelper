@@ -23,10 +23,6 @@ tab_dicts, tab_words, tab_n = st.tabs(
 )
 
 
-def _is_en_ru_pair(native: str, study: str) -> bool:
-    return {native, study} == {"en", "ru"}
-
-
 with tab_dicts:
     st.subheader(t("create_dict", locale))
     with st.form("create_dict_form"):
@@ -50,10 +46,7 @@ with tab_dicts:
         else:
             try:
                 api_client.create_dictionary(native, study, int(n_to_learn), locale)
-                if _is_en_ru_pair(native, study):
-                    st.success(t("seeded_note", locale))
-                else:
-                    st.success(t("dict_created", locale))
+                st.rerun()
             except Exception as e:
                 detail = ""
                 try:
